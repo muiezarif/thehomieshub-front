@@ -1,0 +1,36 @@
+/* The Homies Hub - Central Theme Colors */
+
+:root {
+  /* Dark Mode Palette */
+  --theme-bg: 0 0% 5.1%; /* #0D0D0D */
+  --theme-fg: 0 0% 91.8%; /* #EAEAEA */
+  
+  --theme-card: 0 0% 7.8%; /* #141414 */
+  --theme-card-fg: 0 0% 91.8%;
+  
+  --theme-popover: 0 0% 7.8%;
+  --theme-popover-fg: 0 0% 91.8%;
+
+  /* === Brand Colors === */
+  /* This is the main color that will be changed */
+  --theme-primary: 40 95% 62%; /* #F0B94D (Darker Gold) */
+  --theme-primary-fg: 0 0% 5.1%;
+  
+  --theme-secondary: 38 78% 50%; /* #D1942E (Even Darker Gold for links) */
+  --theme-secondary-fg: 0 0% 5.1%;
+
+  --theme-muted: 0 0% 7.8%;
+  --theme-muted-fg: 0 0% 60%; /* #999999 */
+  
+  --theme-accent: 40 95% 62% / 0.15; /* Hover for secondary buttons */
+  --theme-accent-fg: 40 95% 62%;
+  
+  --theme-destructive: 0 62.8% 30.6%;
+  --theme-destructive-fg: 0 0% 98%;
+  
+  --theme-border: 40 95% 62% / 0.1;
+  --theme-input: 40 95% 62%; /* Active input border */
+  --theme-ring: 40 95% 62%;
+
+  --theme-radius: 0.5rem;
+}

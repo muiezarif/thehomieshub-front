@@ -1,0 +1,152 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: var(--theme-bg);
+    --foreground: var(--theme-fg);
+    --card: var(--theme-card);
+    --card-foreground: var(--theme-card-fg);
+    --popover: var(--theme-popover);
+    --popover-foreground: var(--theme-popover-fg);
+    --primary: var(--theme-primary);
+    --primary-foreground: var(--theme-primary-fg);
+    --secondary: var(--theme-secondary);
+    --secondary-foreground: var(--theme-secondary-fg);
+    --muted: var(--theme-muted);
+    --muted-foreground: var(--theme-muted-fg);
+    --accent: var(--theme-accent);
+    --accent-foreground: var(--theme-accent-fg);
+    --destructive: var(--theme-destructive);
+    --destructive-foreground: var(--theme-destructive-fg);
+    --border: var(--theme-border);
+    --input: var(--theme-input);
+    --ring: var(--theme-ring);
+    --radius: var(--theme-radius);
+    
+    /* Safe Area Variables */
+    --safe-area-inset-top: env(safe-area-inset-top);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom);
+  }
+ 
+  .light {
+    --background: 0 0% 98%;
+    --foreground: 20 14.3% 4.1%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 14.3% 4.1%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 14.3% 4.1%;
+    --primary: var(--theme-primary);
+    --primary-foreground: 20 14.3% 4.1%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 20 14.3% 4.1%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 20 14.3% 46.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 20 14.3% 4.1%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: var(--theme-ring);
+  }
+}
+
+mux-player {
+  --controls: none !important;
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    /* Prevent pull-to-refresh on mobile */
+    overscroll-behavior-y: none;
+    /* Prevent text selection */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  h1, h2, h3 {
+    @apply text-primary;
+  }
+
+  a {
+    @apply text-secondary hover:text-primary transition-colors;
+  }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: var(--safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: var(--safe-area-inset-top);
+  }
+  .h-safe-screen {
+    height: calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+  }
+  .min-h-safe-screen {
+    min-height: calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+  }
+}
+
+@layer components {
+  .btn-secondary-custom {
+    @apply bg-transparent border-primary text-primary hover:bg-accent;
+  }
+}
+
+.video-thumbnail {
+  aspect-ratio: 16/9;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* For Vertical Video Feed */
+.scroll-snap-container {
+  scroll-snap-type: y mandatory;
+  /* Smoother scrolling on mobile */
+  -webkit-overflow-scrolling: touch;
+}
+.scroll-snap-child {
+  scroll-snap-align: start;
+}
+
+/* Mobile specific overrides */
+@media (max-width: 768px) {
+  /* Hide hover effects on touch devices */
+  .hover\:scale-105:hover, 
+  .group:hover .group-hover\:opacity-100 {
+    transform: none;
+    opacity: 1; /* Always show controls/overlays or handle via JS state */
+  }
+
+  /* Increase tap targets */
+  button, 
+  a, 
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Disable scroll chaining */
+  .overscroll-contain {
+    overscroll-behavior: contain;
+  }
+}
