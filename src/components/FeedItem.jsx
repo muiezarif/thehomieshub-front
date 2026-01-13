@@ -383,7 +383,7 @@ const FeedItem = ({ post, onLoginRequest, compact = false }) => {
         <div className="flex items-start justify-between mb-2">
           <Link to={`/profile/${post.user.username}`} className="flex items-start space-x-2 md:space-x-3 group min-w-0">
             <Avatar className={cn("border border-border group-hover:border-primary transition-colors", compact ? "w-8 h-8" : "w-10 h-10 md:w-12 md:h-12", post.type === 'mint' ? "border-primary/50" : "")}>
-              <AvatarImage src={`https://avatar.vercel.sh/${post.user.username}.png`} />
+              <AvatarImage src={`${post.user.avatar}`} />
               <AvatarFallback>{post.user.name.charAt(0)}</AvatarFallback>
             </Avatar>
             <div className="pt-0.5 min-w-0">
