@@ -986,6 +986,8 @@ const MomentsForm = ({ onPostSuccess }) => {
     const [file, setFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [coverPreview, setCoverPreview] = useState(null);
+    const [coverFile, setCoverFile] = useState(null);
+
 
     const [isRecording, setIsRecording] = useState(false);
     const [isCameraReady, setIsCameraReady] = useState(false);
