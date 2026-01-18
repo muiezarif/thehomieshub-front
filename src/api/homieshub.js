@@ -2,8 +2,8 @@ import axios from "axios";
 
 const api = axios.create({
   // baseURL: "https://7e44af3754f6.ngrok-free.app/api",
-  baseURL: "http://localhost:8800/api",
-  // baseURL: "https://backend.thehomies.app/api",
+  // baseURL: "http://localhost:8800/api",
+  baseURL: "https://backend.thehomies.app/api",
   withCredentials: false, // we use Bearer tokens, no cookies needed
 });
 
