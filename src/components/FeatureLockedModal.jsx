@@ -123,7 +123,7 @@ const FeatureLockedModal = ({ isOpen, onOpenChange }) => {
             <span className={cn("text-sm font-medium", billingCycle === 'yearly' ? "text-white" : "text-gray-400")}>Yearly (Save more!)</span>
           </div>
 
-          <div className="space-y-2">
+          {/* <div className="space-y-2">
             <Label htmlFor="discount" className="text-white">Discount Code</Label>
             <Input
               id="discount"
@@ -132,7 +132,7 @@ const FeatureLockedModal = ({ isOpen, onOpenChange }) => {
               onChange={(e) => setDiscountCode(e.target.value)}
               className="bg-[#1a1a1a] border-gray-800 text-white placeholder:text-gray-500 focus-visible:ring-[#fbbf24]"
             />
-          </div>
+          </div> */}
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-3 sm:gap-2">
