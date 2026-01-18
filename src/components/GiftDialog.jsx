@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Diamond, Gift } from 'lucide-react';
@@ -6,15 +6,31 @@ import { useWallet } from '@/contexts/WalletContext';
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import api from "@/api/homieshub";
 
 const GIFT_AMOUNTS = [10, 50, 100, 500, 1000];
 
 const GiftDialog = ({ isOpen, onOpenChange, recipientName, recipientUsername, onGiftSuccess }) => {
-  const { balance, addPoints } = useWallet(); 
+  const [balance, setBalance] = useState(0);
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedAmount, setSelectedAmount] = useState(null);
   const [isSending, setIsSending] = useState(false);
+
+
+  useEffect(() => {
+  if (!isOpen) return;
+
+  (async () => {
+    try {
+      const resp = await api.get("/wallet/me");
+      setBalance(resp?.data?.result?.walletPoints ?? 0);
+    } catch (e) {
+      console.error("Failed to load wallet balance:", e);
+      setBalance(0);
+    }
+  })();
+}, [isOpen]);
 
   const handleSendGift = async () => {
     if (!selectedAmount) return;
@@ -44,7 +60,7 @@ const GiftDialog = ({ isOpen, onOpenChange, recipientName, recipientUsername, on
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Deduct points (passing negative value)
-    addPoints(-selectedAmount);
+    setBalance((b) => Math.max(0, b - selectedAmount));
     
     toast({
         title: "Gift Sent! 🎁",
@@ -92,7 +108,7 @@ const GiftDialog = ({ isOpen, onOpenChange, recipientName, recipientUsername, on
         <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg mb-2 border border-border/50">
             <span className="text-sm text-muted-foreground">Your Balance:</span>
             <span className="font-bold flex items-center gap-1 text-primary">
-                {balance.toLocaleString()} <Diamond className="w-3 h-3 fill-current" />
+                {Number(balance || 0).toLocaleString()} <Diamond className="w-3 h-3 fill-current" />
             </span>
         </div>
 

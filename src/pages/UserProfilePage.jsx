@@ -53,7 +53,8 @@ const UserProfilePage = () => {
   const [reels, setReels] = useState([]);
 
   // Favorites only for own profile
-  const [favorites, setFavorites] = useState({ posts: [], videos: [] });
+  const [favorites, setFavorites] = useState({ videos: [], reels: [] });
+
 
   // follow state
   const [isFollowing, setIsFollowing] = useState(false);
@@ -75,28 +76,28 @@ const UserProfilePage = () => {
 
 
   const mapCommunityPostToFeedItem = (p) => {
-  const author = p?.author || {};
-  return {
-    id: p?._id || p?.id,
-    _id: p?._id,
-    type: p?.type, // thread | poll | trip
-    user: {
-      id: author?._id || author?.id,
-      username: author?.username || "user",
-      name: author?.name || author?.username || "User",
-      avatar: author?.avatarUrl || "",
-      verified: false,
-    },
-    timestamp: p?.createdAt ? new Date(p.createdAt).toLocaleDateString() : "",
-    isSubscriberOnly: !!p?.isSubscriberOnly,
-    isNSFW: !!p?.isNSFW,
+    const author = p?.author || {};
+    return {
+      id: p?._id || p?.id,
+      _id: p?._id,
+      type: p?.type, // thread | poll | trip
+      user: {
+        id: author?._id || author?.id,
+        username: author?.username || "user",
+        name: author?.name || author?.username || "User",
+        avatar: author?.avatarUrl || "",
+        verified: false,
+      },
+      timestamp: p?.createdAt ? new Date(p.createdAt).toLocaleDateString() : "",
+      isSubscriberOnly: !!p?.isSubscriberOnly,
+      isNSFW: !!p?.isNSFW,
 
-    // FeedItem expects content.*
-    content: {
-      text: p?.text || "",
-      images: Array.isArray(p?.media) ? p.media.filter(m => m?.type === "image").map(m => m.url).filter(Boolean) : [],
-      poll: p?.poll
-        ? {
+      // FeedItem expects content.*
+      content: {
+        text: p?.text || "",
+        images: Array.isArray(p?.media) ? p.media.filter(m => m?.type === "image").map(m => m.url).filter(Boolean) : [],
+        poll: p?.poll
+          ? {
             question: p.poll.question || "",
             options: (p.poll.options || []).map(o => ({
               text: o.text || "",
@@ -105,45 +106,45 @@ const UserProfilePage = () => {
             totalVotes: (p.poll.options || []).reduce((sum, o) => sum + (o.votesCount || 0), 0),
             endsIn: p.poll.expiresAt ? new Date(p.poll.expiresAt).toLocaleDateString() : "",
           }
-        : null,
-      trip: p?.trip
-        ? {
+          : null,
+        trip: p?.trip
+          ? {
             title: "Trip",
             coverImage: p.trip.coverImageUrl || "",
             duration: `${p.trip.durationDays ?? p.trip.duration ?? 1} days`,
-      destinations: Array.isArray(p.trip.destinations) ? p.trip.destinations : [],
-      isFollowing: false,
+            destinations: Array.isArray(p.trip.destinations) ? p.trip.destinations : [],
+            isFollowing: false,
           }
-        : null,
+          : null,
         event: p?.event
-  ? {
-      title: p.event.title || "Event",
-      description: p.event.description || "",
-      coverImage: p.event.coverImageUrl || "",
-      startAt: p.event.startAt || null,
-      endAt: p.event.endAt || null,
-      locationName: p.event.locationName || "",
-      locationAddress: p.event.locationAddress || "",
-      lat: p.event.lat ?? null,
-      lng: p.event.lng ?? null,
-      isPaid: !!p.event.isPaid,
-      price: p.event.price ?? 0,
-      currency: p.event.currency || "USD",
-      capacity: p.event.capacity ?? null,
-      attendeeCount: p.event.attendeeCount ?? 0,
-    }
-  : null,
+          ? {
+            title: p.event.title || "Event",
+            description: p.event.description || "",
+            coverImage: p.event.coverImageUrl || "",
+            startAt: p.event.startAt || null,
+            endAt: p.event.endAt || null,
+            locationName: p.event.locationName || "",
+            locationAddress: p.event.locationAddress || "",
+            lat: p.event.lat ?? null,
+            lng: p.event.lng ?? null,
+            isPaid: !!p.event.isPaid,
+            price: p.event.price ?? 0,
+            currency: p.event.currency || "USD",
+            capacity: p.event.capacity ?? null,
+            attendeeCount: p.event.attendeeCount ?? 0,
+          }
+          : null,
 
-    },
+      },
 
-    engagement: {
-      likes: p?.stats?.likes ?? 0,
-      comments: p?.stats?.comments ?? 0,
-      shares: 0,
-      saves: 0,
-    },
+      engagement: {
+        likes: p?.stats?.likes ?? 0,
+        comments: p?.stats?.comments ?? 0,
+        shares: 0,
+        saves: 0,
+      },
+    };
   };
-};
 
 
   const getBadge = (u) => {
@@ -199,17 +200,23 @@ const UserProfilePage = () => {
   const loadFavorites = async () => {
     if (!isOwnProfile) return;
     try {
-      const res = await api.get('/profile/me/favorites');
-      const fav = res?.data?.result?.favorites;
+      // ✅ Use library endpoint, because it contains SAVED reels/videos/posts
+      const res = await api.get('/user/my-library');
+      const lib = res?.data?.result;
+
+      const saved = lib?.items?.saved || {};
+
       setFavorites({
-        posts: fav?.posts || [],
-        videos: fav?.videos || [],
+        // VideoPost expects raw video/reel docs (it already handles muxPlaybackId/videoUrl)
+        videos: saved?.videos || [],
+        reels: saved?.reels || [],
       });
     } catch (e) {
-      // favorites failing shouldn't break profile page
       console.warn('Favorites load failed', e);
+      setFavorites({ videos: [], reels: [] });
     }
   };
+
 
   useEffect(() => {
     loadProfile();
@@ -278,10 +285,10 @@ const UserProfilePage = () => {
   };
 
   const handleOpenWatch = (post) => {
-  const postId = post._id || post.id;
-  if (!postId) return;
-  navigate(`/watch/${postId}`, { state: { username } });
-};
+    const postId = post._id || post.id;
+    if (!postId) return;
+    navigate(`/watch/${postId}`, { state: { username } });
+  };
 
   // derive what to render in tabs
   const userPosts = useMemo(() => posts || [], [posts]);
@@ -465,9 +472,10 @@ const UserProfilePage = () => {
 
         <div className="mt-8">
           <Tabs defaultValue="posts" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 md:w-[24rem]">
+            <TabsList className="grid w-full grid-cols-4 md:w-[24rem]">
               <TabsTrigger value="posts">Posts</TabsTrigger>
               <TabsTrigger value="videos">Videos</TabsTrigger>
+              <TabsTrigger value="reels">Reels</TabsTrigger>
               {isOwnProfile && <TabsTrigger value="favorites">Favorites</TabsTrigger>}
             </TabsList>
 
@@ -484,6 +492,31 @@ const UserProfilePage = () => {
                 )}
               </div>
             </TabsContent>
+            <TabsContent value="reels" className="mt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-8">
+                {reels?.length > 0 ? (
+                  reels.map((post, index) => (
+                    <motion.div
+                      key={post._id || post.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: index * 0.05 }}
+                    >
+                      <VideoPost post={post} />
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="col-span-full">
+                    <Card>
+                      <CardContent className="p-6 text-center text-muted-foreground">
+                        This user hasn&apos;t uploaded any reels yet.
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
 
             <TabsContent value="videos" className="mt-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-8">
@@ -514,8 +547,8 @@ const UserProfilePage = () => {
               <TabsContent value="favorites" className="mt-6">
                 <Tabs defaultValue="f-posts" className="w-full">
                   <TabsList>
-                    <TabsTrigger value="f-posts">Posts</TabsTrigger>
-                    <TabsTrigger value="f-videos">Videos</TabsTrigger>
+                    <TabsTrigger value="f-videos">Saved Videos</TabsTrigger>
+                    <TabsTrigger value="f-reels">Saved Reels</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="f-posts" className="mt-6">
@@ -531,6 +564,31 @@ const UserProfilePage = () => {
                       )}
                     </div>
                   </TabsContent>
+                  <TabsContent value="f-reels" className="mt-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-8">
+                      {favorites?.reels?.length > 0 ? (
+                        favorites.reels.map((post, index) => (
+                          <motion.div
+                            key={post._id || post.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: index * 0.05 }}
+                          >
+                            <VideoPost post={post} />
+                          </motion.div>
+                        ))
+                      ) : (
+                        <div className="col-span-full">
+                          <Card>
+                            <CardContent className="p-6 text-center text-muted-foreground">
+                              You haven&apos;t saved any reels yet.
+                            </CardContent>
+                          </Card>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
 
                   <TabsContent value="f-videos" className="mt-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-8">
@@ -558,6 +616,9 @@ const UserProfilePage = () => {
                   </TabsContent>
                 </Tabs>
               </TabsContent>
+
+
+
             )}
           </Tabs>
         </div>

@@ -34,6 +34,7 @@ function mapReelToVerticalPost(r) {
   return {
     id: r?._id || r?.id,
     type: 'clip', // your UI uses "clip" for vertical video posts
+    backendType: 'reel',
     videoUrl: playbackId || r?.videoUrl || '',
     muxPlaybackId: r?.muxPlaybackId || null,
 
@@ -72,6 +73,7 @@ function mapVideoToVerticalPost(v) {
   return {
     id: v?._id || v?.id,
     type: 'clip',
+    backendType: 'video',
     videoUrl: playbackId || v?.videoUrl || '',
     muxPlaybackId: v?.muxPlaybackId || null,
 
@@ -112,6 +114,7 @@ function mapCommunityPostToFeedItem(p) {
     id: p?._id || p?.id,
 
     type, // 'thread' | 'poll' | 'trip' | 'event'
+    backendType: 'community_post',
     isNSFW: !!p?.isNSFW,
     isSubscriberOnly: !!p?.isSubscriberOnly,
 
@@ -220,6 +223,46 @@ const loadCommunityPosts = async () => {
   }
 };
 
+const loadMyLibrary = async () => {
+  const resp = await api.get("/user/my-library");
+  const result = resp?.data?.result;
+
+  const liked = result?.items?.liked || {};
+  const saved = result?.items?.saved || {};
+
+  // ✅ map backend docs -> UI feed items
+  const likedItems = [
+    ...(safeArray(liked.videos).map(mapVideoToVerticalPost)),
+    ...(safeArray(liked.reels).map(mapReelToVerticalPost)),
+    ...(safeArray(liked.posts).map(mapCommunityPostToFeedItem)),
+  ].filter(x => x?.id);
+
+  const savedItems = [
+    ...(safeArray(saved.videos).map(mapVideoToVerticalPost)),
+    ...(safeArray(saved.reels).map(mapReelToVerticalPost)),
+    ...(safeArray(saved.posts).map(mapCommunityPostToFeedItem)),
+  ].filter(x => x?.id);
+
+  // ✅ hydrate IDs so other parts of UI can still rely on ids
+  const likedIds = [
+    ...safeArray(result?.liked?.videoIds),
+    ...safeArray(result?.liked?.reelIds),
+    ...safeArray(result?.liked?.postIds),
+  ].map(String);
+
+  const savedIds = [
+    ...safeArray(result?.saved?.videoIds),
+    ...safeArray(result?.saved?.reelIds),
+    ...safeArray(result?.saved?.postIds),
+  ].map(String);
+
+  setLikedPostIds(likedIds);
+  setSavedPostIds(savedIds);
+
+  return { likedItems, savedItems };
+};
+
+
   // ✅ Load real feed from backend (reels + videos)
   useEffect(() => {
     let cancelled = false;
@@ -267,7 +310,11 @@ const loadCommunityPosts = async () => {
   }, []);
 
   const addReel = (newReel) => setVerticalPosts(prev => [newReel, ...prev]);
-  const addPost = (newPost) => setCommunityPosts(prev => [newPost, ...prev]);
+  const addPost = (newPost) => {
+  const mapped = mapCommunityPostToFeedItem(newPost);
+  if (!mapped?.id) return;
+  setCommunityPosts(prev => [mapped, ...prev]);
+};
   const deletePost = (id) => {
     setVerticalPosts(prev => prev.filter(p => p.id !== id));
     setCommunityPosts(prev => prev.filter(p => p.id !== id));
@@ -462,15 +509,56 @@ const toggleContentLike = async ({ targetType, targetId }) => {
 
   const isPostLiked = (postId) => likedPostIds.includes(String(postId));
 
-  const togglePostSave = (postId) => {
-    setSavedPostIds(prev => {
-      const idStr = String(postId);
-      if (prev.includes(idStr)) {
-        return prev.filter(id => id !== idStr);
-      }
-      return [...prev, idStr];
-    });
-  };
+const togglePostSave = async ({ targetType, targetId }) => {
+  const idStr = String(targetId);
+
+  // optimistic ids update
+  setSavedPostIds(prev => prev.includes(idStr) ? prev.filter(x => x !== idStr) : [...prev, idStr]);
+
+  // optimistic: update saves count in verticalPosts (if item exists)
+  setVerticalPosts(prev =>
+    prev.map(p => {
+      if (String(p.id) !== idStr) return p;
+      const currentlySaved = savedPostIds.includes(idStr);
+      const nextSaved = !currentlySaved;
+      return {
+        ...p,
+        engagement: {
+          ...p.engagement,
+          saves: Math.max(0, (p.engagement?.saves ?? 0) + (nextSaved ? 1 : -1)),
+        }
+      };
+    })
+  );
+
+  try {
+    await api.post("/user/save", { targetType, targetId: idStr });
+  } catch (err) {
+    console.error("togglePostSave failed:", err);
+
+    // rollback ids
+    setSavedPostIds(prev => prev.includes(idStr) ? prev.filter(x => x !== idStr) : [...prev, idStr]);
+
+    // rollback count
+    setVerticalPosts(prev =>
+      prev.map(p => {
+        if (String(p.id) !== idStr) return p;
+        const currentlySaved = savedPostIds.includes(idStr);
+        const rollbackSaved = !currentlySaved;
+        return {
+          ...p,
+          engagement: {
+            ...p.engagement,
+            saves: Math.max(0, (p.engagement?.saves ?? 0) + (rollbackSaved ? 1 : -1)),
+          }
+        };
+      })
+    );
+
+    throw err;
+  }
+};
+
 
   const isPostSaved = (postId) => savedPostIds.includes(String(postId));
 
@@ -506,6 +594,7 @@ const toggleContentLike = async ({ targetType, targetId }) => {
     isPostSaved,
     loadCommunityPosts,
     toggleContentLike,
+    loadMyLibrary,
   };
 
   return (

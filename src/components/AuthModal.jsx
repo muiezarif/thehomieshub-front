@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,9 +14,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import api from '../api/homieshub';
-
-// ✅ Import your API base
-// <- adjust path if your file is located elsewhere
 
 // --- Sub-components defined OUTSIDE to prevent re-render focus loss issues ---
 
@@ -135,8 +134,6 @@ const MainAuthView = ({
           {isSubmitting ? 'Signing in...' : 'Sign In'}
         </Button>
 
-        {/* ❌ Removed Quick Sign In (Test User) */}
-
         <Button variant="link" size="sm" className="self-end" onClick={() => setAuthView('forgotPassword')}>
           Forgot password?
         </Button>
@@ -231,7 +228,7 @@ const PlanSelectionStep = ({ user, plans, formData, handlePlanChange, setFormDat
   </>
 );
 
-const ConfirmationStep = ({ user, plans, formData, onBack, onConfirm }) => {
+const ConfirmationStep = ({ user, plans, formData, onBack, onConfirm, isSubmitting }) => {
   const selectedPlan = plans[formData.plan];
   const price = selectedPlan.price[formData.billingCycle];
 
@@ -270,8 +267,10 @@ const ConfirmationStep = ({ user, plans, formData, onBack, onConfirm }) => {
         <p className="text-xs text-muted-foreground text-center">By completing your purchase, you agree to our Terms of Service.</p>
       </div>
       <DialogFooter className="flex-col sm:flex-row sm:justify-between gap-2">
-        <Button variant="outline" onClick={onBack}>Back</Button>
-        <Button onClick={onConfirm}>Complete Upgrade</Button>
+        <Button variant="outline" onClick={onBack} disabled={isSubmitting}>Back</Button>
+        <Button onClick={onConfirm} disabled={isSubmitting}>
+          {isSubmitting ? 'Redirecting...' : 'Complete Upgrade'}
+        </Button>
       </DialogFooter>
     </>
   )
@@ -280,7 +279,7 @@ const ConfirmationStep = ({ user, plans, formData, onBack, onConfirm }) => {
 const AuthModal = ({ isOpen, onOpenChange, initialView = 'main' }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, signIn, updateUserTier, refreshMe,setAccessToken  } = useAuth();
+  const { user, signIn, refreshMe, setAccessToken } = useAuth();
 
   const [activeTab, setActiveTab] = useState('signin');
   const [authView, setAuthView] = useState(initialView);
@@ -303,17 +302,12 @@ const AuthModal = ({ isOpen, onOpenChange, initialView = 'main' }) => {
 
   const handleInputChange = (e) => {
     const { id, value } = e.target;
-
-    // Map signin fields to the same state keys (no UI change)
     if (id === 'email-signin') return setFormData(prev => ({ ...prev, email: value }));
     if (id === 'password-signin') return setFormData(prev => ({ ...prev, password: value }));
-
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  const handlePlanChange = (value) => {
-    setFormData(prev => ({ ...prev, plan: value }));
-  };
+  const handlePlanChange = (value) => setFormData(prev => ({ ...prev, plan: value }));
 
   const nextUpgradeStep = () => setUpgradeStep(prev => prev + 1);
   const prevUpgradeStep = () => setUpgradeStep(prev => prev - 1);
@@ -337,12 +331,11 @@ const AuthModal = ({ isOpen, onOpenChange, initialView = 'main' }) => {
   const handleFeatureNotImplemented = () => {
     toast({
       title: '🚧 Feature Not Implemented',
-      description: "This feature isn't implemented yet—but don't worry! You can request it in your next prompt! 🚀",
+      description: "This feature isn't implemented yet.",
     });
   };
 
   const handleAdminLoginClick = async () => {
-    // leaving as-is (your admin auth flow is separate)
     await signIn('admin');
     onOpenChange(false);
     toast({
@@ -361,32 +354,26 @@ const AuthModal = ({ isOpen, onOpenChange, initialView = 'main' }) => {
       });
 
       const data = resp?.data;
-      if (!data?.status) {
-        throw new Error(data?.message || 'Login failed');
-      }
+      if (!data?.status) throw new Error(data?.message || 'Login failed');
 
       const token = data?.result?.access_token;
-      if (token){
+      if (token) {
         await setAccessToken(token);
-         localStorage.setItem('access_token', token);
-        }
+        localStorage.setItem('access_token', token);
+      }
+
       await refreshMe();
+
       toast({
         title: '🎉 Welcome Back!',
         description: data?.message || 'Signed in successfully.',
       });
 
-      // Close modal; AuthContext can pick token and fetch /auth/me
       resetFlow();
     } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Login failed';
-
       toast({
         title: '❌ Sign In Failed',
-        description: msg,
+        description: err?.response?.data?.message || err?.message || 'Login failed',
       });
     } finally {
       setIsSubmitting(false);
@@ -396,7 +383,6 @@ const AuthModal = ({ isOpen, onOpenChange, initialView = 'main' }) => {
   const handleSignUpSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // Backend passes through to Central Billing register endpoint :contentReference[oaicite:4]{index=4}
       const resp = await api.post('/auth/register', {
         email: formData.email,
         password: formData.password,
@@ -405,16 +391,13 @@ const AuthModal = ({ isOpen, onOpenChange, initialView = 'main' }) => {
       });
 
       const data = resp?.data;
-
-      if (!data?.status) {
-        throw new Error(data?.message || 'Registration failed');
-      }
+      if (!data?.status) throw new Error(data?.message || 'Registration failed');
 
       const token = data?.result?.access_token;
       if (token) {
         localStorage.setItem('access_token', token);
         await setAccessToken(token);
-        await refreshMe();        // <-- add this
+        await refreshMe();
         toast({
           title: '🎉 Account Created!',
           description: data?.message || `Welcome, ${formData.displayName}!`,
@@ -423,39 +406,43 @@ const AuthModal = ({ isOpen, onOpenChange, initialView = 'main' }) => {
         return;
       }
 
-      // If CB doesn't return token on register, backend sends message prompting login
       toast({
         title: '✅ Registered!',
         description: data?.message || 'Registration successful. Please sign in.',
       });
 
-      // Switch to sign-in tab but keep email filled
       setActiveTab('signin');
       setAuthView('main');
     } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Registration failed';
-
       toast({
         title: '❌ Sign Up Failed',
-        description: msg,
+        description: err?.response?.data?.message || err?.message || 'Registration failed',
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleUpgradeComplete = () => {
-    if (user) {
-      updateUserTier(formData.plan);
-      toast({
-        title: '🎉 Upgrade Successful!',
-        description: `You are now a ${plans[formData.plan].name} member.`,
+  const handleUpgradeComplete = async () => {
+    try {
+      setIsSubmitting(true);
+
+      const resp = await api.post("/subscription/checkout", {
+        plan: formData.plan,
+        billingCycle: formData.billingCycle,
       });
+
+      const url = resp?.data?.result?.url;
+      if (!url) throw new Error("Missing checkout url");
+      window.location.href = url;
+    } catch (err) {
+      toast({
+        title: "Upgrade failed",
+        description: err?.response?.data?.message || err?.message || "Please try again",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
     }
-    resetFlow();
   };
 
   const plans = {
@@ -518,26 +505,13 @@ const AuthModal = ({ isOpen, onOpenChange, initialView = 'main' }) => {
             formData={formData}
             onBack={prevUpgradeStep}
             onConfirm={handleUpgradeComplete}
+            isSubmitting={isSubmitting}
           />
         );
       }
     }
 
-    return (
-      <MainAuthView
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        formData={formData}
-        handleInputChange={handleInputChange}
-        handleSignUpSubmit={handleSignUpSubmit}
-        handleSignInSubmit={handleSignInSubmit}
-        resetFlow={resetFlow}
-        handleFeatureNotImplemented={handleFeatureNotImplemented}
-        setAuthView={setAuthView}
-        handleAdminLoginClick={handleAdminLoginClick}
-        isSubmitting={isSubmitting}
-      />
-    );
+    return null;
   };
 
   return (

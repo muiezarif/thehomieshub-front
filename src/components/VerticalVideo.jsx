@@ -79,7 +79,7 @@ const VerticalVideo = ({ post, index, isVisible, onLoginRequest }) => {
     const isMux = !!playbackId;
     const muxPoster = playbackId ? `https://image.mux.com/${playbackId}/thumbnail.jpg?time=1` : null;
 const commentTargetType =
-  post?.contentType === "reel" || post?.type === "reel" ? "reel" : "video";
+  post?.backendType === "reel" || post?.type === "reel" ? "reel" : "video";
     const audioTrack = post.music || {
         id: `original-${post.id}`,
         title: 'Original Audio',
@@ -276,7 +276,7 @@ const likeCount = post?.engagement?.likes ?? 0;
         } else if (action === 'save') {
             if (isSaveLoading) return;
             setIsSaveLoading(true);
-            togglePostSave(post.id);
+            await togglePostSave({ targetType: commentTargetType, targetId: post.id });
             setTimeout(() => setIsSaveLoading(false), 500);
         } else if (action === 'follow') {
             if (isFollowLoading) return;
